@@ -57,10 +57,5 @@
     "sharp": "^0.30.1",
     "socket.io": "^4.4.0",
     "yargs": "^17.2.1"
-  },
-  "optionalDependencies": {
-    "mpris-for-dummies": "NyaomiDEV/mpris-for-dummies",
-    "windowtoolbox": "NyaomiDEV/windowtoolbox",
-    "winplayer-node": "NyaomiDEV/WinPlayer-Node"
   }
 }
