@@ -23,20 +23,32 @@ export default class Instance extends EventEmitter {
 		}
 		
 		return new Promise(resolve => {
-			this.server.on("error", (e: { code: string }) => {
+			this.server.on("error", async (e: { code: string }) => {
 				if (e.code === "EADDRINUSE") {
 					this.server.close();
-					const sock = connect({ path: lockPath }, () => {
-						sock.write(JSON.stringify(yargs(hideBin(process.argv)).argv), () => {
-							sock.destroy();
-							resolve(false);
+					try {
+						const sock = connect({ path: lockPath }, () => {
+							sock.write(JSON.stringify(yargs(hideBin(process.argv)).argv), () => {
+								sock.destroy();
+								resolve(false);
+							});
 						});
-					});
-					sock.on("error", (e: { code: string }) => {
-						if (e.code === "ECONNREFUSED")
-							unlink(lockPath).then(() => resolve(this.requestLock()));
-					});
-				}
+						sock.setTimeout(1000);
+						sock.on("timeout", async () => {
+							sock.destroy();
+							await unlink(lockPath).catch(() => {});
+							resolve(this.requestLock());
+						});
+						sock.on("error", async () => {
+							await unlink(lockPath).catch(() => {});
+							resolve(this.requestLock());
+						});
+					} catch (_) {
+						await unlink(lockPath).catch(() => {});
+						resolve(this.requestLock());
+					}
+				} else
+					resolve(true);
 			});
 
 			this.server.on("listening", () => resolve(true));

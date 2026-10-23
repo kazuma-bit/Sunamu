@@ -2,7 +2,7 @@
 	// Uncomment this to set a language other than the detected (system) one
 	// language: "en",
 	// Would you want to use Electron to display Sunamu as a stand alone application?
-	useElectron: true,
+	useElectron: false,
 	// Would you like to spawn a local web server that makes Sunamu accessible through web browsers on your network?
 	useWebserver: true,
 	// If the option above is true, the option below can be used to define the port where the web server will listen
@@ -10,7 +10,7 @@
 	// Do you want to run Sunamu in debug mode?
 	debugMode: false,
 	// Do you want to use the Ozone Wayland Platform? (Linux only)
-	waylandOzone: true,
+	waylandOzone: false,
 	// How often to poll for track position?
 	positionPollInterval: 0.2,
 	// Do you want the karaoke feature to be on?
@@ -29,7 +29,7 @@
 	},
 	discordRpc: {
 		// Specify if you want your Discord Presence to show what you are playing
-		enabled: true,
+		enabled: false,
 		// Probably blacklist your browser here lol (unless you do want to show it)
 		blacklist: []
 	},

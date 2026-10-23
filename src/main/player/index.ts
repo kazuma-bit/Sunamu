@@ -22,19 +22,28 @@ let player: Player;
 
 export default async function getPlayer(){
 	if(!player){
-		switch (process.platform) {
-			case "linux":
-				let MPRIS2 = await import("./mpris2");
-				player = Object.assign({}, MPRIS2);
-				break;
-			case "win32":
-				let winplayer = await import("./winplayer");
-				player = Object.assign({}, winplayer);
-				break;
-			default:
-				console.error("Player: Unsupported platform!");
+		try {
+			switch (process.platform) {
+				case "linux":
+					let MPRIS2 = await import("./mpris2");
+					player = Object.assign({}, MPRIS2);
+					break;
+				case "win32":
+					let winplayer = await import("./winplayer");
+					player = Object.assign({}, winplayer);
+					break;
+			}
+		} catch (_e) {
+			// Native player not available in this environment
+		}
+
+		if (!player) {
+			try {
+				let webplayer = await import("./webplayer");
+				player = Object.assign({}, webplayer);
+			} catch (_) {
 				player = Object.assign({}, fallback);
-				break;
+			}
 		}
 	}
 

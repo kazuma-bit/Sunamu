@@ -21,12 +21,11 @@ function getPresenceConfig() {
 async function connect(){
 	if(loginPromise) return loginPromise;
 
-	let _resolve;
-	loginPromise = new Promise(resolve => {_resolve = resolve;});
-	let error: boolean, client: Client;
+	let _resolve: () => void;
+	loginPromise = new Promise<void>(resolve => {_resolve = resolve;});
 
-	do {
-		client = new RPC.Client({
+	try {
+		const client = new RPC.Client({
 			transport: "ipc"
 		});
 
@@ -40,22 +39,15 @@ async function connect(){
 			rpc = undefined;
 		});
 
-		try{
-			error = false;
-			debug("Discord RPC logging in");
-			await client.connect(clientId);
-		}catch(_e){
-			debug(_e);
-			error = true;
-			client.removeAllListeners();
-			await client.destroy().catch(() => {});
-			debug("Discord RPC errored out while logging in, waiting 5 seconds before retrying");
-			await new Promise(resolve => setTimeout(resolve, 5000));
-		}
-	}while(error);
+		debug("Discord RPC logging in");
+		await client.connect(clientId);
+		rpc = client;
+	} catch (_e) {
+		debug("Discord RPC is unavailable in this environment:", _e);
+		config.enabled = false;
+	}
 
-	rpc = client;
-	_resolve();
+	_resolve!();
 	loginPromise = undefined;
 }
 

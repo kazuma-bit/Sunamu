@@ -52,27 +52,37 @@ export async function remove(id: string): Promise<boolean>{
 }
 
 export async function convertUncompressed(): Promise<void>{
-	const lyrics = await readdir(lyrPath);
-	for(const file of lyrics){
-		if(extname(file) === ".gz") continue;
+	try {
+		await mkdir(lyrPath, { recursive: true });
+		const lyrics = await readdir(lyrPath);
+		for(const file of lyrics){
+			if(extname(file) === ".gz") continue;
 
-		const path = resolve(lyrPath, file);
-		await writeFile(path + ".gz", await gzipCompress(await readFile(path)));
-		await rm(path);
+			const path = resolve(lyrPath, file);
+			await writeFile(path + ".gz", await gzipCompress(await readFile(path)));
+			await rm(path);
+		}
+	} catch (_) {
+		// Cache dir empty or unavailable
 	}
 }
 
 export async function statCachePath(): Promise<Map<string, Stats>>{
-	const lyrics = await readdir(lyrPath);
 	const stats = new Map<string, Stats>();
+	try {
+		await mkdir(lyrPath, { recursive: true });
+		const lyrics = await readdir(lyrPath);
 
-	stats[Symbol.iterator] = function* statsIterator() {
-		yield* [...this.entries()].sort((a, b) => b[1].atimeMs - a[1].atimeMs);
-	};
+		stats[Symbol.iterator] = function* statsIterator() {
+			yield* [...this.entries()].sort((a, b) => b[1].atimeMs - a[1].atimeMs);
+		};
 
-	for (const file of lyrics) {
-		const path = resolve(lyrPath, file);
-		stats.set(file, await stat(path));
+		for (const file of lyrics) {
+			const path = resolve(lyrPath, file);
+			stats.set(file, await stat(path));
+		}
+	} catch (_) {
+		// Ignore
 	}
 
 	return stats;

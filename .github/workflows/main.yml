@@ -1,10 +1,19 @@
-name: Build Sunamu Widget
+name: Build and Test Sunamu
 
 on:
-  workflow_dispatch: # Allows you to trigger the build manually with a button click
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-linux:
+  build:
+    name: Build & Package (Linux)
     runs-on: ubuntu-latest
 
     steps:
@@ -14,30 +23,44 @@ jobs:
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: 18 # Lock into Node 18 which matches Sunamu's construction era
+          node-version: 20
+          cache: npm
 
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libgtk-3-dev libxss-dev libasound2-dev libnss3
+          sudo apt-get install -y build-essential libgtk-3-dev libxss-dev libasound2-dev libnss3 libvips-dev
 
       - name: Install Project Dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Run Linter
+        run: npm run lint
+
       - name: Compile Application Code
         run: npm run build
 
-      - name: Bundle into Linux Installers
-        run: npx electron-builder --linux --x64
+      - name: Package Linux Desktop Application
+        run: npx electron-builder --linux --x64 --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Finished App Installer
+      - name: Upload Linux Installers
         uses: actions/upload-artifact@v4
+        if: success()
         with:
-          name: sunamu-linux-build
+          name: sunamu-linux-x64
           path: |
-            dist/*.AppImage
-            dist/*.deb
-            out/*.AppImage
-            out/*.deb
+            targets/*.AppImage
+            targets/*.deb
+            targets/*.rpm
+            targets/*.pacman
+            targets/*.tar.xz
+          if-no-files-found: ignore
+
+      - name: Upload Web Build
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: sunamu-web-build
+          path: dist/

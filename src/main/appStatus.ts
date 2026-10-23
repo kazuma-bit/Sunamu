@@ -9,8 +9,10 @@ export const widgetMode = checkFunctionality(getConfig("scenes").default.widgetM
 export const debugMode = checkFunctionality(getConfig("debugMode"), "debug");
 export const waylandOzone = checkFunctionality(getConfig("waylandOzone"), "wayland-ozone");
 
-export const useElectron = checkFunctionality(getConfig("useElectron"), "electron");
-export const useWebserver = checkFunctionality(getConfig("useWebserver"), "webserver");
+const isHeadless = !process.env.DISPLAY && !process.env.WAYLAND_DISPLAY;
+
+export const useElectron = isHeadless ? false : checkFunctionality(getConfig("useElectron"), "electron");
+export const useWebserver = isHeadless ? true : checkFunctionality(getConfig("useWebserver"), "webserver");
 
 export function checkFunctionality(configBoolean: boolean, name: string): boolean {
 	return checkSwitch(argv[name.toLowerCase()]) ?? checkSwitch(process.env[name.replace(/-/g, "_").toUpperCase()]) ?? configBoolean;

@@ -49,7 +49,7 @@ export const allLangs = {
 		UNKNOWN_TITLE: "Titre inconnu",
 		LYRICS_COPYRIGHT: "Paroles provenant de %PROVIDER%",
 	},
-		nl: {
+	nl: {
 		NOT_PLAYING: "Er wordt niets afgespeeld",
 		PLEASE_PLAY_SONG: "Speel een nummer af",
 		PLAYING_ON_APP: "Wordt afgespeeld in",

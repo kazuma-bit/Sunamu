@@ -123,7 +123,7 @@ export type Capabilities = {
 }
 
 export type Update = {
-	provider: "MPRIS2" | "WinPlayer",
+	provider: "MPRIS2" | "WinPlayer" | "WebPlayer",
 	metadata: Metadata,
 	capabilities: Capabilities,
 	status: string,

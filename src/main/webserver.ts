@@ -1,30 +1,79 @@
+import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import path from "path";
+import mime from "mime";
 import getPlayer, { Player } from "./player";
 import { get as getConfig, getAll as getAllConfig } from "./config";
 import { widgetMode, debugMode, useElectron } from "./appStatus";
 import { getAppData } from "./util";
 
 import { Server, Socket } from "socket.io";
-import { createServer } from "http";
-import { Server as StaticServer } from "node-static";
+import { createServer, IncomingMessage, ServerResponse } from "http";
 import { addLyricsUpdateCallback, addSongDataCallback, songdata, addPositionCallback } from "./playbackStatus";
 import { getThemeLocation, getThemesDirectory } from "./themes";
 
-import { debug } from ".";
-
 let player: Player;
 
-const file = new StaticServer(path.resolve(__dirname, "..", "www"), { indexFile: "index.htm", cache: 0 });
-const themes = new StaticServer(getThemesDirectory(), {	cache: 0 });
-const server = createServer((req, res) => {
-	if(req.url!.startsWith("/themes/")){
-		req.url = req.url!.replace("/themes/", "/");
-		themes.serve(req, res);
-		return;
+const wwwDir = path.resolve(__dirname, "..", "www");
+const themesDir = getThemesDirectory();
+
+async function handleStaticRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+	try {
+		let urlPath = (req.url || "/").split("?")[0];
+		let basePath = wwwDir;
+
+		if (urlPath.startsWith("/themes/")) {
+			urlPath = urlPath.slice("/themes".length);
+			basePath = themesDir;
+		}
+
+		let filePath = path.normalize(path.join(basePath, urlPath));
+		if (!filePath.startsWith(basePath)) {
+			res.statusCode = 403;
+			res.end("Forbidden");
+			return;
+		}
+
+		let stats = await stat(filePath).catch(() => null);
+		if (stats?.isDirectory()) {
+			filePath = path.join(filePath, "index.htm");
+			stats = await stat(filePath).catch(() => null);
+		}
+
+		if (!stats || !stats.isFile()) {
+			res.statusCode = 404;
+			res.end("Not Found");
+			return;
+		}
+
+		const mimeType = mime.getType(filePath) || "application/octet-stream";
+		res.setHeader("Content-Type", mimeType);
+		res.setHeader("Content-Length", stats.size);
+		res.setHeader("Cache-Control", "no-cache");
+
+		if (req.method === "HEAD") {
+			res.statusCode = 200;
+			res.end();
+			return;
+		}
+
+		const stream = createReadStream(filePath);
+		stream.on("error", () => {
+			if (!res.headersSent) {
+				res.statusCode = 500;
+				res.end("Server Error");
+			}
+		});
+		stream.pipe(res);
+	} catch (_) {
+		if (!res.headersSent) {
+			res.statusCode = 500;
+			res.end("Server Error");
+		}
 	}
-	file.serve(req, res);
-});
+}
+
+const server = createServer(handleStaticRequest);
 
 export const io = new Server(server);
 
@@ -80,7 +129,8 @@ function registerSocketIO(socket: Socket) {
 export default async function webserverMain(){
 	player = await getPlayer();
 
-	server.listen(getConfig("webserverPort"), () => debug(`WebServer listening on port ${getConfig("webserverPort")}`));
+	const port = Number(getConfig("webserverPort")) || 3000;
+	server.listen(port, "0.0.0.0", () => console.log(`Sunamu WebServer listening on 0.0.0.0:${port}`));
 
 	io.on("connection", socket => {
 		registerSocketIO(socket);
